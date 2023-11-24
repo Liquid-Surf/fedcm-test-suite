@@ -1,139 +1,187 @@
-const idpHost = 'http://idp-1.localhost:8080';
-// const idpHost = process.env.IDP_HOST || 'http://idp-1.localhost:8080';
-
-const requestOptions = {
-  method: 'GET',
-  headers: {
-    'Accept': 'application/json',
-    'Sec-Fetch-Dest': 'webidentity',
-  }
-};
-
+const idpHost = process.env.FEDCM_IDP_HOST || 'http://idp-1.localhost:8080';
+const clientId = process.env.FEDCM_CLIENT_ID || 'yourClientId'
+const clientOrigin = process.env.FEDCM_CLIENT_ORIGIN || 'http://localhost:7080'
+const accountId = process.env.FEDCM_CLIENT_ID || '123456'
+export const authCookie = process.env.FEDCM_IDP_AUTH_COOKIE || "";
+console.log(`using auth cookie ${authCookie}`)
 
 describe('Identity Provider HTTP API', () => {
+  const wellKnownUrl = `${idpHost}/.well-known/web-identity`;
+
   describe('the Well-Known file', () => {
-    const wellKnownFileURL = idpHost + '/.well-known/web-identity';
-    it('should return well-known file', async () => {
-      const response = await fetch(wellKnownFileURL, requestOptions);
-      const data = await response.json();
+    // manifests | cookies: no | client_id: no | origin: no
+    it('should return a IdentityProviderWellKnown JSON object', async () => {
+      const response = await fetch(wellKnownUrl, withSecFetchHeader(baseRequestOptions));
+      const wellKnowConfig: IdentityProviderWellKnown = await response.json() as IdentityProviderWellKnown;
 
-      expect(response.status).toBe(200);
-      expect(Array.isArray(data.provider_urls)).toBeTruthy();
+      expect(Array.isArray(wellKnowConfig.provider_urls)).toBeTruthy();
+    });
+
+    it('should return 400 when Sec-Fetch-Dest is not set', async () => {
+      const response = await fetch(wellKnownUrl, baseRequestOptions);
+
+      expect(response.status).toBe(400);
     });
   })
 
-  describe('the config file', () => {
-    // const configFileURL = idpHost + '/config.json';
-    const configFileURL = idpHost + '/fedcm.json';
-    it('should return config file', async () => {
-      const response = await fetch(configFileURL, requestOptions);
-      const data = await response.json();
+  describe('other endpoints', () => {
+    let wellKnownConfig: IdentityProviderWellKnown;
+    let idpApiConfig: IdentityProviderAPIConfig;
 
-      expect(response.status).toBe(200);
-      expect(data.accounts_endpoint).toEqual(expect.any(String));
-      expect(data.client_metadata_endpoint).toEqual(expect.any(String));
-      expect(data.id_assertion_endpoint).toEqual(expect.any(String));
-      expect(data.branding).toEqual(expect.any(Object));
-    });
-  })
+    beforeEach(async () => {
+      const wellKnownResponse = await fetch(wellKnownUrl, withSecFetchHeader(baseRequestOptions));
+      wellKnownConfig = await wellKnownResponse.json() as IdentityProviderWellKnown;
 
-  describe('accounts list endpoint', () => {
-    // const accountsEndpointURL = idpHost + '/accounts_list';
-    const accountsEndpointURL = idpHost + '/fedcm/accounts_endpoint';
-    it('should return accounts list', async () => {
-      const response = await fetch(accountsEndpointURL, requestOptions);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(Array.isArray(data.accounts)).toBe(true);
-    });
-  })
-
-  describe('client metadata', () => {
-    // const clientMetadataEndpointURL = idpHost + '/client_metadata';
-    const clientMetadataEndpointURL = idpHost + '/fedcm/client_metadata_endpoint';
-    it('should return client metadata', async () => {
-      const response = await fetch(clientMetadataEndpointURL, {
-        ...requestOptions,
-        headers: {
-          ...requestOptions.headers,
-          'Origin': 'https://rp.test/',
-        },
-      });
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.privacy_policy_url).toEqual(expect.any(String));
-      expect(data.terms_of_service_url).toEqual(expect.any(String));
-    });
-  })
-
-  describe.skip('TODO: wip identity assertion endpoint', () => {
-    // const idAssertionEndpointURL = idpHost + '/fedcm_assertion_endpoint';
-    const idAssertionEndpointURL = idpHost + '/fedcm/token_endpoint';
-    let authCookie = null;
-
-    beforeAll(async () => {
-      authCookie = await getIdpSessionCookie();
     });
 
-    it('should return identity assertion', async () => {
-      if (!authCookie) {
-        throw new Error('Authentication cookie not obtained');
-      }
+    describe('the config file', () => {
+      // config | cookies: no | client_id: no | origin: no
+      it('should return config file', async () => {
+        const response = await fetch(wellKnownConfig.provider_urls[0], withSecFetchHeader(baseRequestOptions));
+        idpApiConfig = await response.json() as IdentityProviderAPIConfig;
 
-      const response = await fetch(idAssertionEndpointURL, {
-        ...requestOptions,
-        method: 'POST',
-        headers: {
-          ...requestOptions.headers,
-          'Origin': 'https://rp.test/',
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Cookie': authCookie
-        },
-        body: new URLSearchParams({
-          client_id: 'your_client_id',
-          nonce: 'Ct60bD',
-          account_id: '123',
-          disclosure_text_shown: 'true',
-        }),
+        expect(idpApiConfig.accounts_endpoint).toEqual(expect.any(String));
+        expect(idpApiConfig.client_metadata_endpoint).toEqual(expect.any(String));
+        expect(idpApiConfig.id_assertion_endpoint).toEqual(expect.any(String));
+        expect(idpApiConfig.branding).toEqual(expect.any(Object));
       });
 
-      const data = await response.json();
+      it('should return 400 when Sec-Fetch-Dest is not set', async () => {
+        const response = await fetch(wellKnownConfig.provider_urls[0], baseRequestOptions);
 
-      expect(response.status).toBe(200);
-      expect(data.token).toEqual(expect.any(String));
-    });
+        expect(response.status).toBe(400);
+      });
+    })
+
+    // The accounts list endpoint provides the list of accounts
+    // the user has at the IDP.
+    describe('accounts list endpoint', () => {
+      // accounts_endpoint | cookies: yes | client_id: no | origin: no
+      it('should return accounts list', async () => {
+        const accountsEndpointURL: string = `${idpHost}${idpApiConfig?.accounts_endpoint}`;
+        const response = await fetch(accountsEndpointURL, withAuthCookie(withSecFetchHeader(baseRequestOptions)));
+        const data = await response.json() as IdentityProviderAccountList;
+
+        expect(response.status).toBe(200);
+        expect(Array.isArray(data.accounts)).toBe(true);
+      });
+
+      it('should return no accounts when no cookie is set', async () => {
+        const accountsEndpointURL: string = `${idpHost}${idpApiConfig?.accounts_endpoint}`;
+        const response = await fetch(accountsEndpointURL, withSecFetchHeader(baseRequestOptions));
+        const data = await response.json() as IdentityProviderAccountList;
+
+        expect(data.accounts.length).toEqual(0);
+      });
+
+      it('should return at least one account with valid cookie', async () => {
+        const accountsEndpointURL: string = `${idpHost}${idpApiConfig?.accounts_endpoint}`;
+        const response = await fetch(accountsEndpointURL, withAuthCookie(withSecFetchHeader(baseRequestOptions)));
+        const data = await response.json() as IdentityProviderAccountList;
+
+        if (data.accounts.length == 0) {
+          throw new Error('No accounts found. Please register a client in the IdP')
+        } else {
+          expect(data.accounts[0].id).toEqual(expect.any(String));
+          expect(data.accounts[0].name).toEqual(expect.any(String));
+          expect(data.accounts[0].email).toEqual(expect.any(String));
+          expect(data.accounts[0].given_name).toEqual(expect.any(String));
+          expect(data.accounts[0].picture).toEqual(expect.any(String));
+          expect(Array.isArray(data.accounts[0].approved_clients)).toBe(true);
+          // expect(Array.isArray(data.accounts[0].login_hints)).toBe(true);
+        }
+      });
+
+      it('should return 400 when Sec-Fetch-Dest is not set', async () => {
+        const accountsEndpointURL: string = `${idpHost}${idpApiConfig?.accounts_endpoint}`;
+        const response = await fetch(accountsEndpointURL, baseRequestOptions);
+
+        expect(response.status).toBe(400);
+      });
+
+    })
+
+
+    describe('client metadata', () => {
+      // client_metadata_endpoint	 | cookies: no | client_id: yes | origin: yes
+      it('should return client metadata', async () => {
+        const clientMetadataEndpointURL: string = `${idpHost}${idpApiConfig?.client_metadata_endpoint}`;
+        const response = await fetch(clientMetadataEndpointURL,
+          withOriginHeader(
+            withSecFetchHeader(baseRequestOptions))
+        );
+        const data = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(data.privacy_policy_url).toEqual(expect.any(String));
+        expect(data.terms_of_service_url).toEqual(expect.any(String));
+      });
+    })
+
+    describe.skip('TODO: wip identity assertion endpoint', () => {
+      // id_assertion_endpoint | cookies: yes | client_id: yes | origin: yes
+      it('should return identity assertion', async () => {
+        const idAssertionEndpointURL = `${idpHost}${idpApiConfig.id_assertion_endpoint}`;
+        const nonce = Math.floor(Math.random() * 10e10).toString();
+        const response = await fetch(idAssertionEndpointURL,
+          withAuthCookie(
+            withOriginHeader(
+              withSecFetchHeader({
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                  'Accept': 'application/json'
+                },
+                body: new URLSearchParams({
+                  client_id: clientId,
+                  nonce: nonce,
+                  account_id: accountId,
+                  disclosure_text_shown: 'true',
+                }),
+              })))
+        );
+        const data = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(data.token).toEqual(expect.any(String));
+      });
+    })
   })
-
 });
 
-async function getIdpSessionCookie() {
-  const loginEndpointURL = idpHost + '/api/auth/signin'
-  const email = process.env.IDP_USER || 'foobar@example.org'
-  const password = process.env.IDP_PASSWORD || 'password'
-  let authCookie;
-
-  const signInResponse = await fetch(loginEndpointURL, {
-    method: 'POST',
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      email: email,
-      secret: password,
-    }),
-  });
-
-  if (signInResponse.ok) {
-    const setCookieHeader = signInResponse.headers.get('set-cookie');
-    authCookie = setCookieHeader ? setCookieHeader.split(';')[0] : null;
-  } else {
-    console.error('Failed to sign in');
+const baseRequestOptions = {
+  method: 'GET',
+  headers: {
+    'Accept': 'application/json'
   }
+}
 
-  console.log(">>>>>>", authCookie)
+const withSecFetchHeader = (options: any) => {
+  return {
+    ...options,
+    headers: {
+      ...options.headers,
+      'Sec-Fetch-Dest': 'webidentity',
+    },
+  };
+};
 
-  return authCookie;
+const withAuthCookie = (options: any) => {
+  return {
+    ...options,
+    headers: {
+      ...options.headers,
+      'Cookie': authCookie,
+    },
+  };
+};
+
+const withOriginHeader = (options: any) => {
+  return {
+    ...options,
+    headers: {
+      ...options.headers,
+      'Origin': clientOrigin
+    }
+  }
 }
