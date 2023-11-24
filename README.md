@@ -14,17 +14,17 @@ The test suite is currently only used against the [FedCM Prototyping IdP](https:
 
 ## How to Run
 
+Follow the instructions on [FedCM Prototyping IdP](https://github.com/asr-enid/fedcm-idp-typescript) to start the IdP with FedCM support.
+
+For some endpoints an auth cookie is needed. Make sure to register an account with the IdP that can be used for testing.
+
 ```sh
-npm run test
+. ./scripts/cookie.sh
 ```
 
-**Not yet supported:**
+This script sets a few ENVs that will be needed to run the test suite. Update with your information.
 
 ```sh
-# IdP to test
-export IDP_HOST=http://idp-1.localhost:8080
-# An RP configured with the IdP
-export RP_HOST=http://rp.localhost:7080
-
-./scripts/run-idp-test
+npm ci
+npm run test
 ```
