@@ -20,9 +20,14 @@ if [ -z "$COOKIE" ]; then
 fi
 
 export FEDCM_IDP_AUTH_COOKIE="${COOKIE}"
+# We use nonce to pass the DPoP header, see
+# https://github.com/fedidcg/FedCM/issues/572
+export FEDCM_IDP_NONCE="$(node ./scripts/generate_dpop_header.mjs)"
 export FEDCM_IDP_HOST="${IDP_HOST}"
 
 echo "IDP_HOST: ${IDP_HOST}"
 echo "AUTH_ENDPOINT: ${AUTH_ENDPOINT}"
+echo "Nonce: ${FEDCM_IDP_NONCE}"
 echo "Authentication successful. Cookie: ${FEDCM_IDP_AUTH_COOKIE}"
 echo "API URL: ${FEDCM_IDP_HOST}"
+
