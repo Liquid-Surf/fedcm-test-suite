@@ -79,9 +79,7 @@ describe('Identity Provider HTTP API', () => {
       it('should return no accounts when no cookie is set', async () => {
         const accountsEndpointURL: string = `${idpHost}${idpApiConfig?.accounts_endpoint}`;
         const response = await fetch(accountsEndpointURL, withSecFetchHeader(baseRequestOptions));
-        const data = await response.json() as IdentityProviderAccountList;
-
-        expect(data.accounts.length).toEqual(0);
+        expect(response.status).toBe(401);
       });
 
       it('should return at least one account with valid cookie', async () => {
