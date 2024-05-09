@@ -1,7 +1,6 @@
 const idpHost = process.env.FEDCM_IDP_HOST || 'http://idp-1.localhost:8080';
 const clientId = process.env.FEDCM_CLIENT_ID || 'yourClientID'
 const clientOrigin = process.env.FEDCM_CLIENT_ORIGIN || 'http://localhost:7080'
-const accountId = process.env.FEDCM_CLIENT_ID || '123456'
 export const authCookie = process.env.FEDCM_IDP_AUTH_COOKIE || "";
 console.log(`using auth cookie ${authCookie}`)
 
@@ -127,8 +126,13 @@ describe('Identity Provider HTTP API', () => {
     })
 
     describe.skip('TODO: wip identity assertion endpoint', () => {
+    describe('identity assertion endpoint', () => {
       // id_assertion_endpoint | cookies: yes | client_id: yes | origin: yes
       it('should return identity assertion', async () => {
+        const accountsEndpointURL: string = `${idpHost}${idpApiConfig?.accounts_endpoint}`;
+        const responseAccount = await fetch(accountsEndpointURL, withAuthCookie(withSecFetchHeader(baseRequestOptions)));
+        const dataAccount = await responseAccount.json() as IdentityProviderAccountList;
+        const accountId = dataAccount.accounts[0].id
         const idAssertionEndpointURL = `${idpHost}${idpApiConfig.id_assertion_endpoint}`;
         const nonce = Math.floor(Math.random() * 10e10).toString();
         const response = await fetch(idAssertionEndpointURL,
