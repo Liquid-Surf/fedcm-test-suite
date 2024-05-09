@@ -22,6 +22,16 @@ describe('Identity Provider HTTP API', () => {
 
       expect(response.status).toBe(400);
     });
+
+    it('should return a valid provider url that returns a json file', async () => {
+      const response = await fetch(wellKnownUrl, withSecFetchHeader(baseRequestOptions));
+      const wellKnowConfig: IdentityProviderWellKnown = await response.json() as IdentityProviderWellKnown;
+      const fedcmUrl = wellKnowConfig.provider_urls[0]
+      const responseFedcm = await fetch(fedcmUrl, withSecFetchHeader(baseRequestOptions));
+      const t = await responseFedcm.json() // this should throw an error and break the test if no json is returned
+      expect(response.status).toBe(200);
+
+    });
   })
 
   describe('other endpoints', () => {
