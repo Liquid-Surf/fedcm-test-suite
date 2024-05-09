@@ -1,5 +1,5 @@
 const idpHost = process.env.FEDCM_IDP_HOST || 'http://idp-1.localhost:8080';
-const clientId = process.env.FEDCM_CLIENT_ID || 'yourClientId'
+const clientId = process.env.FEDCM_CLIENT_ID || 'yourClientID'
 const clientOrigin = process.env.FEDCM_CLIENT_ORIGIN || 'http://localhost:7080'
 const accountId = process.env.FEDCM_CLIENT_ID || '123456'
 export const authCookie = process.env.FEDCM_IDP_AUTH_COOKIE || "";
