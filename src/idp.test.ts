@@ -158,6 +158,10 @@ describe('Identity Provider HTTP API', () => {
       });
       it.skip('should return a valid token. This is will vary depending on your IdP and RS, please implement this test on your own.', async () => {})
     })
+    describe('Disconnect endpoint', () => {
+      // as the token validity, this might by hard to test
+      it.skip('TODO should disconnect from logged session.', async () => {});
+    })
   })
 });
 
