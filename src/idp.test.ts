@@ -156,6 +156,7 @@ describe('Identity Provider HTTP API', () => {
         expect(response.status).toBe(200);
         expect(data.token).toEqual(expect.any(String));
       });
+      it.skip('should return a valid token. This is will vary depending on your IdP and RS, please implement this test on your own.', async () => {})
     })
   })
 });
