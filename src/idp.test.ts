@@ -125,7 +125,6 @@ describe('Identity Provider HTTP API', () => {
       });
     })
 
-    describe.skip('TODO: wip identity assertion endpoint', () => {
     describe('identity assertion endpoint', () => {
       // id_assertion_endpoint | cookies: yes | client_id: yes | origin: yes
       it('should return identity assertion', async () => {
