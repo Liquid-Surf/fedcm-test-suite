@@ -16,7 +16,9 @@ The test suite is currently only used against the [FedCM Prototyping IdP](https:
 
 Follow the instructions on [FedCM Prototyping IdP](https://github.com/asr-enid/fedcm-idp-typescript) to start the IdP with FedCM support.
 
-For some endpoints an auth cookie is needed. Make sure to register an account with the IdP that can be used for testing.
+For some endpoints an auth cookie is needed. Make sure to register an account with the IdP that can be used for testing. In the repo we use the following account:
+email: foobar@example.org
+password: password
 
 ```sh
 . ./scripts/cookie.sh
@@ -28,3 +30,12 @@ This script sets a few ENVs that will be needed to run the test suite. Update wi
 npm ci
 npm run test
 ```
+
+
+## TODO
+ - more explicit when cookie is not set
+
+ - add fedcm-idp-typescript as a submodul, or create a monorepo
+ - add script to start test with achim's code
+ - add fedcm css as submodule
+ - add script to test with css

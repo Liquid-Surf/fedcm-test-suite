@@ -1,7 +1,6 @@
 const idpHost = process.env.FEDCM_IDP_HOST || 'http://idp-1.localhost:8080';
-const clientId = process.env.FEDCM_CLIENT_ID || 'yourClientId'
+const clientId = process.env.FEDCM_CLIENT_ID || 'yourClientID'
 const clientOrigin = process.env.FEDCM_CLIENT_ORIGIN || 'http://localhost:7080'
-const accountId = process.env.FEDCM_CLIENT_ID || '123456'
 export const authCookie = process.env.FEDCM_IDP_AUTH_COOKIE || "";
 console.log(`using auth cookie ${authCookie}`)
 
@@ -21,6 +20,16 @@ describe('Identity Provider HTTP API', () => {
       const response = await fetch(wellKnownUrl, baseRequestOptions);
 
       expect(response.status).toBe(400);
+    });
+
+    it('should return a valid provider url that returns a json file', async () => {
+      const response = await fetch(wellKnownUrl, withSecFetchHeader(baseRequestOptions));
+      const wellKnowConfig: IdentityProviderWellKnown = await response.json() as IdentityProviderWellKnown;
+      const fedcmUrl = wellKnowConfig.provider_urls[0]
+      const responseFedcm = await fetch(fedcmUrl, withSecFetchHeader(baseRequestOptions));
+      const t = await responseFedcm.json() // this should throw an error and break the test if no json is returned
+      expect(response.status).toBe(200);
+
     });
   })
 
@@ -69,9 +78,7 @@ describe('Identity Provider HTTP API', () => {
       it('should return no accounts when no cookie is set', async () => {
         const accountsEndpointURL: string = `${idpHost}${idpApiConfig?.accounts_endpoint}`;
         const response = await fetch(accountsEndpointURL, withSecFetchHeader(baseRequestOptions));
-        const data = await response.json() as IdentityProviderAccountList;
-
-        expect(data.accounts.length).toEqual(0);
+        expect(response.status).toBe(401);
       });
 
       it('should return at least one account with valid cookie', async () => {
@@ -118,9 +125,13 @@ describe('Identity Provider HTTP API', () => {
       });
     })
 
-    describe.skip('TODO: wip identity assertion endpoint', () => {
+    describe('identity assertion endpoint', () => {
       // id_assertion_endpoint | cookies: yes | client_id: yes | origin: yes
       it('should return identity assertion', async () => {
+        const accountsEndpointURL: string = `${idpHost}${idpApiConfig?.accounts_endpoint}`;
+        const responseAccount = await fetch(accountsEndpointURL, withAuthCookie(withSecFetchHeader(baseRequestOptions)));
+        const dataAccount = await responseAccount.json() as IdentityProviderAccountList;
+        const accountId = dataAccount.accounts[0].id
         const idAssertionEndpointURL = `${idpHost}${idpApiConfig.id_assertion_endpoint}`;
         const nonce = Math.floor(Math.random() * 10e10).toString();
         const response = await fetch(idAssertionEndpointURL,
@@ -145,6 +156,11 @@ describe('Identity Provider HTTP API', () => {
         expect(response.status).toBe(200);
         expect(data.token).toEqual(expect.any(String));
       });
+      it.skip('should return a valid token. This is will vary depending on your IdP and RS, please implement this test on your own.', async () => {})
+    })
+    describe('Disconnect endpoint', () => {
+      // as the token validity, this might by hard to test
+      it.skip('TODO should disconnect from logged session.', async () => {});
     })
   })
 });
