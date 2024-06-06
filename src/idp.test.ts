@@ -2,7 +2,8 @@ const idpHost = process.env.FEDCM_IDP_HOST || 'http://idp-1.localhost:8080';
 const clientId = process.env.FEDCM_CLIENT_ID || 'yourClientID'
 const clientOrigin = process.env.FEDCM_CLIENT_ORIGIN || 'http://localhost:7080'
 export const authCookie = process.env.FEDCM_IDP_AUTH_COOKIE || "";
-console.log(`using auth cookie ${authCookie}`)
+const nonce = process.env.FEDCM_IDP_NONCE || "";
+console.log(`using auth cookie |${authCookie}|`)
 
 describe('Identity Provider HTTP API', () => {
   const wellKnownUrl = `${idpHost}/.well-known/web-identity`;
@@ -133,7 +134,7 @@ describe('Identity Provider HTTP API', () => {
         const dataAccount = await responseAccount.json() as IdentityProviderAccountList;
         const accountId = dataAccount.accounts[0].id
         const idAssertionEndpointURL = `${idpHost}${idpApiConfig.id_assertion_endpoint}`;
-        const nonce = Math.floor(Math.random() * 10e10).toString();
+        // const nonce = Math.floor(Math.random() * 10e10).toString();
         const response = await fetch(idAssertionEndpointURL,
           withAuthCookie(
             withOriginHeader(
